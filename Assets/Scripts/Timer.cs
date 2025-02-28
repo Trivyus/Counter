@@ -1,49 +1,47 @@
+using System;
 using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class Timer : MonoBehaviour, IPointerClickHandler
 {
-    [SerializeField] private TextMeshProUGUI _text;
     [SerializeField] private float _delay = 0.5f;
 
     private bool _isCoroutinePaused = true;
-    private int _time = 0;
+    private Coroutine _coroutine;
+
+    public event Action<int> ValueChanged;
+
+    public int Time { get; private set; }
 
     private void Start()
     {
-        _text.text = "0";
-        StartCoroutine(Counter());
+        Time = 0;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (eventData.button == PointerEventData.InputButton.Left)
+        if (eventData.button == PointerEventData.InputButton.Left && _isCoroutinePaused == true)
         {
-            _isCoroutinePaused = !_isCoroutinePaused;
+            _coroutine = StartCoroutine(Counter());
+            _isCoroutinePaused = false;
+        }
+        else if (eventData.button == PointerEventData.InputButton.Left && _isCoroutinePaused == false)
+        {
+            StopCoroutine(_coroutine);
+            _isCoroutinePaused = true;
         }
     }
 
-    private IEnumerator Counter()
+    public IEnumerator Counter()
     {
-        while (true)
-        {
-            if(_isCoroutinePaused == false) 
-            {
-                _time++;
-                DisplayCountdown(_time);
-                yield return new WaitForSeconds(_delay);
-            }
-            else
-            {
-                yield return null;
-            }
-        }
-    }
+        var wait = new WaitForSeconds(_delay);
 
-    private void DisplayCountdown(int count)
-    {
-        _text.text = count.ToString();
+        while (enabled)
+        {
+            Time++;
+            ValueChanged?.Invoke(Time);
+            yield return wait;
+        }
     }
 }
